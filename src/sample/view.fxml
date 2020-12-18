@@ -67,9 +67,6 @@
             </children>
         </HBox>
         <BorderPane prefHeight="467.0" prefWidth="1207.0" styleClass="body_background" stylesheets="@../css/style.css" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <top>
-                <Pane prefHeight="31.0" prefWidth="1207.0" BorderPane.alignment="CENTER" />
-            </top>
             <left>
                 <Pane prefHeight="449.0" prefWidth="102.0" BorderPane.alignment="CENTER">
                     <children>
@@ -98,7 +95,7 @@
             <center>
                 <Pane prefHeight="429.0" prefWidth="1027.0" BorderPane.alignment="CENTER">
                     <children>
-                        <ImageView fx:id="album_card" fitHeight="422.0" fitWidth="499.0" layoutX="36.0" layoutY="54.0" pickOnBounds="true" preserveRatio="true">
+                        <ImageView fx:id="album_card" fitHeight="262.0" fitWidth="387.0" layoutX="89.0" layoutY="80.0" pickOnBounds="true" preserveRatio="true">
                             <image>
                                 <Image url="@../images/0c4975b0bb5059f6d76da060e97a3af8.jpg" />
                             </image>
