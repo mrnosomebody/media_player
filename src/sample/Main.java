@@ -1,41 +1,34 @@
 package sample;
 
 import javafx.application.Application;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
-import javafx.scene.layout.AnchorPane;
-import org.w3c.dom.views.AbstractView;
+import javafx.stage.WindowEvent;
 
-import java.io.IOException;
-import java.net.URL;
+import java.io.File;
+import java.lang.reflect.Method;
+
 
 public class Main extends Application {
-    private Stage primaryStage;
-    /*Подключаем макет программы*/
-    public void start(Stage primaryStage) throws Exception {
-        this.primaryStage = primaryStage;
-        this.primaryStage.setTitle("Musikspieler");
-        show_my_programm();
+
+    @Override
+    public void start(Stage primaryStage) throws Exception{
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("sample.fxml"));
+        Parent root = loader.load();
+        primaryStage.setTitle("Player");
+        primaryStage.setScene(new Scene(root, 1400, 900));
+        primaryStage.show();
     }
 
-    public void show_my_programm() {
-        try {
-            FXMLLoader loader = new FXMLLoader();
-            URL xml_url = getClass().getResource("view.fxml");
-            loader.setLocation(xml_url);
-            Parent root = loader.load();
-            Controller controller = loader.getController();
-            primaryStage.setScene(new Scene(root));
-            primaryStage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+
 
     public static void main(String[] args) {
         launch(args);
     }
 }
-

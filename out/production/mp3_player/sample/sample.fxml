@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="845.0" prefWidth="1104.0" style="-fx-background-color: #008080;" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="sample.Controller">
+    <center>
+        <StackPane prefHeight="150.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+            <children>
+                <VBox fx:id="vBox" alignment="BOTTOM_CENTER" prefHeight="450.0" prefWidth="523.0">
+                    <children>
+                  <ListView fx:id="list_of_songs" onMouseClicked="#set_song" prefHeight="200.0" prefWidth="638.0">
+                     <VBox.margin>
+                        <Insets bottom="200.0" left="250.0" right="250.0" />
+                     </VBox.margin>
+                  </ListView>
+                  <TableView fx:id="table" editable="true" prefHeight="185.0" prefWidth="1104.0">
+                    <columns>
+                      <TableColumn fx:id="name" prefWidth="844.0" text="Name" />
+                      <TableColumn fx:id="duration" prefWidth="259.0" text="Duration" />
+                    </columns>
+                     <VBox.margin>
+                        <Insets bottom="100.0" />
+                     </VBox.margin>
+                  </TableView>
+                  <Label fx:id="song_name" prefHeight="43.0" prefWidth="1133.0" textFill="WHITE" />
+                        <Slider fx:id="progressBar" prefHeight="14.0" prefWidth="415.0">
+                     <VBox.margin>
+                        <Insets bottom="25.0" />
+                     </VBox.margin>
+                  </Slider>
+                        <HBox prefHeight="60.0" prefWidth="1111.0">
+                            <opaqueInsets>
+                                <Insets />
+                            </opaqueInsets>
+                            <children>
+                                <Button mnemonicParsing="false" onAction="#choose_method" prefHeight="66.0" prefWidth="170.0" text="ChooseFile" />
+                                <Button mnemonicParsing="false" onAction="#play" prefHeight="66.0" prefWidth="156.0" text="Play" />
+                                <Button mnemonicParsing="false" onAction="#pause" prefHeight="68.0" prefWidth="126.0" text="Pause" />
+                                <Button mnemonicParsing="false" onAction="#stop" prefHeight="65.0" prefWidth="119.0" text="Stop" />
+                                <Button mnemonicParsing="false" onAction="#slow" prefHeight="65.0" prefWidth="110.0" text="Slow" />
+                                <Button mnemonicParsing="false" onAction="#fast" prefHeight="68.0" prefWidth="102.0" text="Fast" />
+                                <Button mnemonicParsing="false" prefHeight="73.0" prefWidth="136.0" text="Mute" />
+                        <VBox prefHeight="60.0" prefWidth="186.0">
+                           <children>
+                                      <Slider fx:id="volumeSlider" />
+                                      <Button mnemonicParsing="false" prefHeight="45.0" prefWidth="185.0" text="Equalizer" />
+                           </children>
+                        </VBox>
+                            </children>
+                        </HBox>
+                    </children>
+                </VBox>
+            </children>
+        </StackPane>
+    </center>
+</BorderPane>

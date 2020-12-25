@@ -1,382 +1,365 @@
 package sample;
-
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import de.umass.lastfm.Caller;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.geometry.Insets;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.BubbleChart;
-import javafx.scene.chart.XYChart;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.Slider;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
-import javafx.scene.media.*;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Slider;
+import javafx.scene.control.TableColumn;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 import javafx.stage.FileChooser;
-import javafx.stage.Window;
-import javafx.util.Callback;
 import javafx.util.Duration;
+import javafx.scene.control.Label;
+import javafx.scene.media.AudioEqualizer;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 
+import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.List;
-
 
 public class Controller {
 
+    public static Controller controller;
+    public static Controller getController() {
+        return controller;
+    }
+    public static void setController(Controller controller) {
+        Controller.controller = controller;
+    }
+    public void initialize(){
+        Controller.setController(this);
+        controller.set_playlist();
+    }
     private String path;
-    private MediaPlayer media_player;
-    private MediaPlayer previous_media_player = null;
-
-    private final String apiKey = "81133b7adcb966c38b5f3bee1065d54e";
-    private final String cx = "dd3f703ed128e1ba0e822fc0b0592de5";
-    private final String projectName = "music_player";
-    private final String user = "Mrnosomebody";
-    private  String album = null;
-    private  String artist = null;
-    private String url_to_image;
+    private MediaPlayer mediaPlayer;
+    private MediaPlayer _mediaPlayer;
 
     @FXML
-    private ImageView album_card;
+    private MediaView mediaView;
 
     @FXML
-    private BarChart visualizator;
-    private XYChart.Data[] series1Data;
-    XYChart.Series<String, Number> series1;
-    String[] categories;
-
-    @FXML
-    private Slider progress_bar;
-
-    @FXML
-    private Slider volume_bar;
-    
-    @FXML
-    private ListView<File> songs_list;
+    private Slider progressBar;
 
     @FXML
     private VBox vBox;
 
     @FXML
+    private Slider volumeSlider;
+
+    @FXML
     private Label song_name;
 
     @FXML
-    private Slider eq_slider;
+    private TableView table;
+    //String playlist_file = "C:\\Users\\mrnos\\Desktop\\playlist.txt";
+    FileWriter playlist_file_writer;
+    FileReader playlist_file_reader = new FileReader("C:\\Users\\mrnos\\Desktop\\playlist.txt");
 
     @FXML
-    private AnchorPane anc_eq_slider;
+    private TableColumn<String,String> name;
 
-    private AudioEqualizer eq;
+    @FXML
+    private TableColumn<String, Integer> duration;
 
+    static public ObservableList<File> selected_files;
 
-    public final AudioEqualizer equalizer() {
-        anc_eq_slider.setVisible(true);
-        eq = media_player.getAudioEqualizer();
-        ObservableList<EqualizerBand> band_list = eq.getBands();
-        //equalizer slider
-        eq_slider.setValue(media_player.getAudioSpectrumNumBands());
-        eq_slider.valueProperty().addListener(new InvalidationListener() {
-            @Override
-            public void invalidated(Observable observable) {
-                for (int n = 0; n < 10; n++) {
-                    EqualizerBand eq_band = band_list.get(n);
-                    eq_band.setGain(eq_slider.getValue());
-                    band_list.set(n, eq_band);
-                }
-            }
-        });
-        return eq;
+    @FXML
+    private ListView<File> list_of_songs;
+
+    public Controller() throws IOException {
     }
 
-    public void add(){
-        if (media_player != null) {
-            media_player.stop();
-        }
-        if (media_player==null){
-            //visualizator
-            series1 = new XYChart.Series<String, Number>();
-            series1Data = new XYChart.Data[128];
-            categories = new String[128];
-            for (int i = 0; i < series1Data.length; i++) {
-                categories[i] = Integer.toString(i + 1);
-                series1Data[i] = new XYChart.Data<String, Number>(categories[i], 50);
-                series1.getData().add(series1Data[i]);
+    public void http(String song_full_name,String artist, String album,String query) {
+        table = new TableView();
+        Formatter f = new Formatter();
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(query).openConnection();
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.connect();
+            StringBuilder sb = new StringBuilder();
+
+            if (HttpURLConnection.HTTP_OK == connection.getResponseCode()) {
+                BufferedReader in = new BufferedReader((new InputStreamReader(connection.getInputStream())));
+                String line;
+                while ((line = in.readLine()) != null) {
+                    sb.append(line);
+                }
+                System.out.println(sb.toString());
+                if (!sb.toString().split(",")[0].equals("{\"error\":6")) {
+                    JsonObject jsonObject = new JsonParser().parse(sb.toString()).getAsJsonObject();
+                    JsonElement duration_ = jsonObject.getAsJsonObject("album").getAsJsonObject("tracks").getAsJsonArray("track").get(0).getAsJsonObject().get("duration");
+                    JsonElement name_ = jsonObject.getAsJsonObject("album").get("name");
+                    System.out.println(name_);
+                    Integer duration_min=duration_.getAsInt()/60 ;
+                    Integer duration_sec=duration_.getAsInt()-duration_min*60;
+                    duration.setCellValueFactory(new PropertyValueFactory<String,Integer>(f.format("%d : %d",duration_min,duration_sec).toString()));
+                    name.setCellValueFactory(new PropertyValueFactory<String,String>(f.format("%s",name_.getAsString()).toString()));
+                    table.getColumns().addAll(name,duration);
+
+
+                }
+
+
+            } else {
+                System.out.println("Error " + connection.getResponseCode() + "," + connection.getResponseMessage());
             }
-            visualizator.getData().add(series1);
+        } catch (Throwable cause) {
+            cause.printStackTrace();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    public void set_playlist()  {
+        try {
+            ObservableList<File> list = FXCollections.observableArrayList();
+            BufferedReader reader = new BufferedReader(playlist_file_reader);
+            String line =reader.readLine();
+            StringBuilder sb = new StringBuilder();
+            sb.append(line);
+            int line_ = sb.toString().split(",").length;
+            for (int i = 0; i< line_;++i){
+                File a = new File(sb.toString().split(",")[i].replaceAll("\\[","").replaceAll("]",""));
+                list.add(a);
+            }
+            list_of_songs.setItems(list);
+            path =  list.get(0).toURI().toString();
+            System.out.println(path);
+            Media media = new Media(path);
+            mediaPlayer = new MediaPlayer(media);
+            song_name.setText(path.split("/")[path.split("/").length - 1].replaceAll("%20", " "));
+
+            mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
+                @Override
+                public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
+                    progressBar.setValue(newValue.toSeconds());
+
+                }
+            });
+
+            progressBar.setOnMousePressed(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
+                }
+            });
+
+            progressBar.setOnMouseDragged(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
+                }
+            });
+
+            mediaPlayer.setOnReady(new Runnable() {
+                @Override
+                public void run() {
+                    Duration time = media.getDuration();
+                    progressBar.setMax(time.toSeconds());
+                }
+            });
+            volumeSlider.setValue(mediaPlayer.getVolume() * 100);
+            volumeSlider.valueProperty().addListener(new InvalidationListener() {
+                @Override
+                public void invalidated(Observable observable) {
+                    mediaPlayer.setVolume(volumeSlider.getValue() / 100);
+                }
+            });
+        }catch (Throwable cause){
+            cause.printStackTrace();
+            System.out.println("tyt gg");
+        }
+
+
+            }
+
+
+
+    public void choose_method(javafx.event.ActionEvent event) throws IOException {
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
         }
         ObservableList<File> list = FXCollections.observableArrayList();
         FileChooser fileChooser = new FileChooser();
         list.addAll( fileChooser.showOpenMultipleDialog(null));
-        songs_list.setItems(list);
-        vBox.getChildren().add(songs_list);
+        list_of_songs.setItems(list);
         path = list.get(0).toURI().toString();
+        System.out.println(list.get(0));
+        System.out.println(path);
+        playlist_file_writer= new FileWriter("C:\\Users\\mrnos\\Desktop\\playlist.txt",false);
+        playlist_file_writer.write(list.toString());
+        playlist_file_writer.close();
 
+
+        if (list_of_songs != null) {
+            Media media = new Media(path);
+            mediaPlayer = new MediaPlayer(media);
+            song_name.setText(path.split("/")[path.split("/").length - 1].replaceAll("%20", " "));
+
+
+            mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
+                @Override
+                public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
+                    progressBar.setValue(newValue.toSeconds());
+
+                }
+            });
+
+            progressBar.setOnMousePressed(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
+                }
+            });
+
+            progressBar.setOnMouseDragged(new EventHandler<MouseEvent>() {
+                @Override
+                public void handle(MouseEvent event) {
+                    mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
+                }
+            });
+
+            mediaPlayer.setOnReady(new Runnable() {
+                @Override
+                public void run() {
+                    Duration time = media.getDuration();
+                    progressBar.setMax(time.toSeconds());
+                }
+            });
+            volumeSlider.setValue(mediaPlayer.getVolume() * 100);
+            volumeSlider.valueProperty().addListener(new InvalidationListener() {
+                @Override
+                public void invalidated(Observable observable) {
+                    mediaPlayer.setVolume(volumeSlider.getValue() / 100);
+                }
+            });
+
+        }
+    }
+
+    public void set_song(){
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
+        path = list_of_songs.getSelectionModel().getSelectedItem().toURI().toString().replaceAll("C:/Users/mrnos/IdeaProjects/mp3_player/%20","");
+        System.out.println(path);
         Media media = new Media(path);
-        media_player = new MediaPlayer(media);
+        mediaPlayer = new MediaPlayer(media);
         song_name.setText(path.split("/")[path.split("/").length - 1].replaceAll("%20", " "));
+        mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
+            @Override
+            public void changed(ObservableValue<? extends Duration> observable, Duration oldValue, Duration newValue) {
+                progressBar.setValue(newValue.toSeconds());
 
-        //Making the slider coming to the end only when it is actually the end
-        media_player.setOnReady(new Runnable() {
+            }
+        });
+
+        progressBar.setOnMousePressed(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
+            }
+        });
+
+        progressBar.setOnMouseDragged(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
+            }
+        });
+
+        mediaPlayer.setOnReady(new Runnable() {
             @Override
             public void run() {
-                Duration total = media_player.getTotalDuration();
-                progress_bar.setMax(total.toSeconds());
+                Duration time = media.getDuration();
+                progressBar.setMax(time.toSeconds());
             }
         });
-    }
-
-    public void click(){
-        if (previous_media_player != null) {
-            media_player.stop();
-            previous_media_player = media_player;
-        }
-        //volume_bar.setValue(media_player.getVolume());
-        path = songs_list.getSelectionModel().getSelectedItem().toURI().toString();
-
-        if (path != null) {
-            Media media = new Media(path);
-            media_player = new MediaPlayer(media);
-            song_name.setText(path.split("/")[path.split("/").length - 1].replaceAll("%20", " "));
-
-            //Making the slider coming to the end only when it is actually the end
-            media_player.setOnReady(new Runnable() {
-                @Override
-                public void run() {
-                    Duration total = media_player.getTotalDuration();
-                    progress_bar.setMax(total.toSeconds());
-                }
-            });
-        }
-        //Volume slider
-        volume_bar.setValue(media_player.getVolume() * 100);
-        volume_bar.valueProperty().addListener(new InvalidationListener() {
+        volumeSlider.setValue(mediaPlayer.getVolume() * 100);
+        volumeSlider.valueProperty().addListener(new InvalidationListener() {
             @Override
             public void invalidated(Observable observable) {
-                media_player.setVolume(volume_bar.getValue() / 100);
+                mediaPlayer.setVolume(volumeSlider.getValue() / 100);
             }
         });
+        String song_full_name = path.split("/")[path.split("/").length - 1].replaceAll("%20", " ");
+        String artist = song_full_name.split(" -")[0].replaceAll(" ", "%20");
+        String album = song_full_name.split("-")[1].split("\\.")[0].replaceFirst(" ", "").replaceAll(" ", "%20");
+        String query = "https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=81133b7adcb966c38b5f3bee1065d54e&artist=" + artist + "&album=" + album + "&format=json";
+        http(song_full_name, artist, album,query);
 
-        //img find
-        String song_full_name=path.split("/")[path.split("/").length - 1].replaceAll("%20", " ");
-        artist = song_full_name.split(" -")[0].replaceAll(" ","%20");
-        album = song_full_name.split("-")[1].split("\\.")[0].replaceFirst(" ","").replaceAll(" ","%20");
-        String query = "https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=81133b7adcb966c38b5f3bee1065d54e&artist="+artist+"&album="+album+"&format=json";
-
-        HttpURLConnection connection = null;
-        try{
-            connection = (HttpURLConnection) new URL(query).openConnection();
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-            connection.connect();
-            StringBuilder sb = new StringBuilder();
-
-            if (HttpURLConnection.HTTP_OK==connection.getResponseCode()){
-                BufferedReader in = new BufferedReader((new InputStreamReader(connection.getInputStream())));
-                String line;
-                while ((line=in.readLine())!=null){
-                    sb.append(line);
-                    sb.append("\n");
-                }
-
-                if (!sb.toString().split(",")[0].equals("{\"error\":6")) {
-                    JsonObject jsonObject = new JsonParser().parse(sb.toString()).getAsJsonObject();
-                    JsonElement temp = jsonObject.getAsJsonObject("album").getAsJsonArray("image").get(3).getAsJsonObject().get("#text");
-                    url_to_image = temp.toString().replaceAll("\"", "");
-                    if (url_to_image.length() > 3) {
-                        Image image = new Image(url_to_image);
-                        album_card.setImage(image);
-                    }
-                    else {
-                        Image image = new Image("images/media.png");
-                        album_card.setImage(image);
-                    }
-                }else {
-                    System.out.println("Album not found");
-                }
-
-
-            }else{
-                System.out.println("Error "+connection.getResponseCode()+","+connection.getResponseMessage());
-            }
-        }catch (Throwable cause){
-            cause.printStackTrace();
-        }finally {
-            if (connection!= null){
-                connection.disconnect();
-            }
-        }
     }
 
-    public void choose_file() throws IOException {
-        if (media_player != null) {
-            media_player.stop();
+
+    public void play(javafx.event.ActionEvent event) {
+        if (_mediaPlayer != null) {
+            mediaPlayer.stop();
+            _mediaPlayer = mediaPlayer;
         }
-        if (media_player==null){
-            //visualizator
-            series1 = new XYChart.Series<String, Number>();
-            series1Data = new XYChart.Data[128];
-            categories = new String[128];
-            for (int i = 0; i < series1Data.length; i++) {
-                categories[i] = Integer.toString(i + 1);
-                series1Data[i] = new XYChart.Data<String, Number>(categories[i], 50);
-                series1.getData().add(series1Data[i]);
-            }
-            visualizator.getData().add(series1);
-        }
-
-        FileChooser file_chooser = new FileChooser();
-        File file = file_chooser.showOpenDialog(null);
-        path = file.toURI().toString();
+        mediaPlayer.play();
 
 
-        if (path != null) {
-            Media media = new Media(path);
-            media_player = new MediaPlayer(media);
-            song_name.setText(path.split("/")[path.split("/").length - 1].replaceAll("%20", " "));
-
-            //Making the slider coming to the end only when it is actually the end
-            media_player.setOnReady(new Runnable() {
-                @Override
-                public void run() {
-                    Duration total = media_player.getTotalDuration();
-                    progress_bar.setMax(total.toSeconds());
-                }
-            });
-        }
-        //Volume slider
-        volume_bar.setValue(media_player.getVolume() * 100);
-        volume_bar.valueProperty().addListener(new InvalidationListener() {
-            @Override
-            public void invalidated(Observable observable) {
-                media_player.setVolume(volume_bar.getValue() / 100);
-            }
-        });
-        //img find
-        String song_full_name=path.split("/")[path.split("/").length - 1].replaceAll("%20", " ");
-        artist = song_full_name.split(" -")[0].replaceAll(" ","%20");
-        album = song_full_name.split("-")[1].split("\\.")[0].replaceFirst(" ","").replaceAll(" ","%20");
-        String query = "https://ws.audioscrobbler.com/2.0/?method=album.getinfo&api_key=81133b7adcb966c38b5f3bee1065d54e&artist="+artist+"&album="+album+"&format=json";
-
-        HttpURLConnection connection = null;
-        try{
-            connection = (HttpURLConnection) new URL(query).openConnection();
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-            connection.connect();
-            StringBuilder sb = new StringBuilder();
-
-            if (HttpURLConnection.HTTP_OK==connection.getResponseCode()){
-                BufferedReader in = new BufferedReader((new InputStreamReader(connection.getInputStream())));
-                String line;
-                while ((line=in.readLine())!=null){
-                    sb.append(line);
-                    sb.append("\n");
-                }
-
-                if (!sb.toString().split(",")[0].equals("{\"error\":6")) {
-                    JsonObject jsonObject = new JsonParser().parse(sb.toString()).getAsJsonObject();
-                    JsonElement temp = jsonObject.getAsJsonObject("album").getAsJsonArray("image").get(3).getAsJsonObject().get("#text");
-                    url_to_image = temp.toString().replaceAll("\"", "");
-                    if (url_to_image.length() > 3) {
-                        Image image = new Image(url_to_image);
-                        album_card.setImage(image);
-                    }
-                    else {
-                        Image image = new Image("images/media.png");
-                        album_card.setImage(image);
-                    }
-                }else {
-                    System.out.println("Album not found");
-                }
-
-
-            }else{
-                System.out.println("Error "+connection.getResponseCode()+","+connection.getResponseMessage());
-            }
-        }catch (Throwable cause){
-            cause.printStackTrace();
-        }finally {
-            if (connection!= null){
-                connection.disconnect();
-            }
-        }
-    }
-
-    public void play() {
-        if (previous_media_player != null) {
-            media_player.stop();
-            previous_media_player = media_player;
-        }
-        media_player.play();
-
-        //ebanyi visualizator
-        media_player.setAudioSpectrumListener(new AudioSpectrumListener() {
-            public void spectrumDataUpdate(double timestamp, double duration, float[] magnitudes, float[] phases) {
-                for (int i = 0; i < series1Data.length; i++) {
-                    series1Data[i].setYValue(magnitudes[i] + 60);
-                }
-            }
-        });
-
-
-        //Jump to the moment where the mouse was pressed on the slider
-        progress_bar.setOnMousePressed(new EventHandler<MouseEvent>() {
+        progressBar.setOnMousePressed(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                media_player.seek(Duration.seconds(progress_bar.getValue()));
+                mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
             }
         });
-        //Jump to the moment where the mouse was dragged on the slider
-        progress_bar.setOnMouseDragged(new EventHandler<MouseEvent>() {
+
+        progressBar.setOnMouseDragged(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent mouseEvent) {
-                media_player.seek(Duration.seconds(progress_bar.getValue()));
+                mediaPlayer.seek(Duration.seconds(progressBar.getValue()));
             }
         });
-        //Slider connection with media time
-        media_player.currentTimeProperty().addListener(new ChangeListener<Duration>() {
+
+        mediaPlayer.currentTimeProperty().addListener(new ChangeListener<Duration>() {
             @Override
             public void changed(ObservableValue<? extends Duration> observableValue, Duration oldValue, Duration newValue) {
-                progress_bar.setValue(media_player.getCurrentTime().toSeconds());
+                progressBar.setValue(mediaPlayer.getCurrentTime().toSeconds());
             }
         });
-
     }
 
-    public void pause() {
-        media_player.pause();
+    public void pause(javafx.event.ActionEvent event) {
+        mediaPlayer.pause();
     }
 
-    public void switch_volume() {
-        if (media_player.getVolume() > 0) {
-            media_player.setVolume(0);
-            volume_bar.setValue(0);
-        } else {
-            media_player.setVolume(1);
-            volume_bar.setValue(100);
-        }
+    public void stop(javafx.event.ActionEvent event) {
+        mediaPlayer.stop();
+    }
+
+    public void slow(javafx.event.ActionEvent event) {
+        mediaPlayer.setRate(0.5);
+    }
+
+    public void fast(javafx.event.ActionEvent event) {
+        mediaPlayer.setRate(2);
     }
 
 
 }
-
