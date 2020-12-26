@@ -70,7 +70,15 @@ public class Controller {
     private Label song_name;
 
     @FXML
-    private TableView table;
+    private Label l_name;
+    @FXML
+    private Label l_artist;
+    @FXML
+    private Label l_listeners;
+    @FXML
+    private Label l_duration;
+
+
     //String playlist_file = "C:\\Users\\mrnos\\Desktop\\playlist.txt";
     FileWriter playlist_file_writer;
     FileReader playlist_file_reader = new FileReader("C:\\Users\\mrnos\\Desktop\\playlist.txt");
@@ -90,7 +98,6 @@ public class Controller {
     }
 
     public void http(String song_full_name,String artist, String album,String query) {
-        table = new TableView();
         Formatter f = new Formatter();
         HttpURLConnection connection = null;
         try {
@@ -106,18 +113,19 @@ public class Controller {
                 while ((line = in.readLine()) != null) {
                     sb.append(line);
                 }
-                System.out.println(sb.toString());
                 if (!sb.toString().split(",")[0].equals("{\"error\":6")) {
                     JsonObject jsonObject = new JsonParser().parse(sb.toString()).getAsJsonObject();
                     JsonElement duration_ = jsonObject.getAsJsonObject("album").getAsJsonObject("tracks").getAsJsonArray("track").get(0).getAsJsonObject().get("duration");
+                    JsonElement listeners_ = jsonObject.getAsJsonObject("album").get("listeners");
                     JsonElement name_ = jsonObject.getAsJsonObject("album").get("name");
-                    System.out.println(name_);
+                    JsonElement artist_ = jsonObject.getAsJsonObject("album").get("artist");
                     Integer duration_min=duration_.getAsInt()/60 ;
                     Integer duration_sec=duration_.getAsInt()-duration_min*60;
-                    duration.setCellValueFactory(new PropertyValueFactory<String,Integer>(f.format("%d : %d",duration_min,duration_sec).toString()));
-                    name.setCellValueFactory(new PropertyValueFactory<String,String>(f.format("%s",name_.getAsString()).toString()));
-                    table.getColumns().addAll(name,duration);
-
+                    String tererere = f.format("%d:%d", duration_min, duration_sec).toString();
+                    l_name.setText(name_.getAsString());
+                    l_artist.setText(artist_.getAsString());
+                    l_listeners.setText(listeners_.getAsString());
+                    l_duration.setText(tererere);
 
                 }
 
@@ -148,7 +156,6 @@ public class Controller {
             }
             list_of_songs.setItems(list);
             path =  list.get(0).toURI().toString();
-            System.out.println(path);
             Media media = new Media(path);
             mediaPlayer = new MediaPlayer(media);
             song_name.setText(path.split("/")[path.split("/").length - 1].replaceAll("%20", " "));
@@ -208,8 +215,6 @@ public class Controller {
         list.addAll( fileChooser.showOpenMultipleDialog(null));
         list_of_songs.setItems(list);
         path = list.get(0).toURI().toString();
-        System.out.println(list.get(0));
-        System.out.println(path);
         playlist_file_writer= new FileWriter("C:\\Users\\mrnos\\Desktop\\playlist.txt",false);
         playlist_file_writer.write(list.toString());
         playlist_file_writer.close();
@@ -352,13 +357,23 @@ public class Controller {
     public void stop(javafx.event.ActionEvent event) {
         mediaPlayer.stop();
     }
-
+private int clicked_slow=0;
     public void slow(javafx.event.ActionEvent event) {
-        mediaPlayer.setRate(0.5);
+        ++clicked_slow;
+        if (clicked_slow%2==0){
+            mediaPlayer.setRate(1);
+        }else {
+            mediaPlayer.setRate(0.5);
+        }
     }
-
+    private int clicked_fast=0;
     public void fast(javafx.event.ActionEvent event) {
-        mediaPlayer.setRate(2);
+        ++clicked_fast;
+        if (clicked_fast%2==0){
+            mediaPlayer.setRate(1);
+        }else {
+            mediaPlayer.setRate(2);
+        }
     }
 
 
